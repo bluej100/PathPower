@@ -1,6 +1,11 @@
 package io.github.bluej100.pathpower;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -13,9 +18,35 @@ import org.bukkit.scheduler.BukkitScheduler;
 
 public class PathPower extends JavaPlugin {
   public HashMap<String, Path> paths = new HashMap<String, Path>();
+  public PrintWriter writer;
   
   @Override
   public void onEnable() {
+    openWriter();
+    scheduleXP();
+  }
+  
+  @Override
+  public void onDisable() {
+    if (writer != null) writer.close();
+  }
+  
+  public void openWriter() {
+    try {
+      File dataFolder = this.getDataFolder();
+      dataFolder.mkdir();
+      File logFile = new File(dataFolder, "log.csv");
+      boolean isNew = logFile.createNewFile();
+      writer = new PrintWriter(new FileWriter(logFile, true));
+      if (isNew) {
+        writer.println("Date,Player,Path,Energy,Time");
+      }
+    } catch (IOException e) {
+      getLogger().warning("Could not open log file");
+    }
+  }
+  
+  public void scheduleXP() {
     BukkitScheduler scheduler = Bukkit.getServer().getScheduler();
     scheduler.scheduleSyncRepeatingTask(this, new Runnable() {
         @Override
@@ -25,7 +56,7 @@ public class PathPower extends JavaPlugin {
               if (player == null) return;              
               float energy = getEnergy(player);
               Path path = entry.getValue();
-              player.setExp(path.lastEnergy - energy);
+              player.setExp(Math.min(path.lastEnergy - energy, 1.0f));
               path.lastEnergy = energy;
             }
         }
@@ -73,10 +104,15 @@ public class PathPower extends JavaPlugin {
       if (path == null) return false;
       paths.remove(playerName);
       long timeUsed = time - path.startTime;
-      String humanTime = String.format("%.1f", timeUsed / 1000f)+"s";
-      float energyUsed = path.startEnergy - energy;
-      player.sendMessage("Path "+path.name+" complete in "+humanTime+"!");
-      player.sendMessage("Energy used: "+energyUsed);      
+      String humanTime = String.format("%.1f", timeUsed / 1000f);
+      String humanEnergy = String.format("%.1f", path.startEnergy - energy);
+      String humanDate = String.format("%tF %<tT", new Date());
+      
+      if (writer != null) {
+        writer.println(humanDate+","+playerName+","+path.name+","+humanEnergy+","+humanTime);
+      }
+      player.sendMessage("Path "+path.name+" complete in "+humanTime+"s!");
+      player.sendMessage("Energy used: "+humanEnergy);    
       break;
     }
     return true;
