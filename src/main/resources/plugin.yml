@@ -1,0 +1,13 @@
+name: PathPower
+main: io.github.bluej100.pathpower.PathPower
+version: 0.1
+commands:
+   pathstart:
+      description: Start tracking a path
+      usage: /pathstart [player]
+   pathname:
+      description: Name the current path
+      usage: /pathname [name] [player]
+   pathend:
+      description: Finish tracking the current path
+      usage: /pathend [player]
