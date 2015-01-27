@@ -117,7 +117,7 @@ public class PathPower extends JavaPlugin {
         writer.println(humanDate+","+playerName+","+path.name+","+humanDistance+","+humanEnergy+","+humanTime);
       }
       player.sendMessage("Path "+path.name+" ("+humanDistance+"m) complete in "+humanTime+"s!");
-      player.sendMessage("Energy used: "+humanEnergy);    
+      player.sendMessage("Energy used: "+humanEnergy+" calories");
       break;
     }
     return true;
@@ -129,7 +129,8 @@ public class PathPower extends JavaPlugin {
   }
   
   private float getEnergy(Player player) {
-    return (player.getFoodLevel() + player.getSaturation()) * 4 - player.getExhaustion();
+    int saturation = (int)Math.ceil(player.getSaturation());
+    return (player.getFoodLevel() + saturation) * 4 - player.getExhaustion();
   }
   
   private class Path {

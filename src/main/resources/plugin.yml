@@ -1,6 +1,6 @@
 name: PathPower
 main: io.github.bluej100.pathpower.PathPower
-version: 0.3
+version: 0.3.1
 commands:
    pathstart:
       description: Start tracking a path
