@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -39,7 +40,7 @@ public class PathPower extends JavaPlugin {
       boolean isNew = logFile.createNewFile();
       writer = new PrintWriter(new FileWriter(logFile, true));
       if (isNew) {
-        writer.println("Date,Player,Path,Energy,Time");
+        writer.println("Date,Player,Path,Distance,Energy,Time");
       }
     } catch (IOException e) {
       getLogger().warning("Could not open log file");
@@ -58,6 +59,7 @@ public class PathPower extends JavaPlugin {
               Path path = entry.getValue();
               player.setExp(Math.min(path.lastEnergy - energy, 1.0f));
               path.lastEnergy = energy;
+              path.updateLocation(player);
             }
         }
     }, 0L, 20L);
@@ -91,6 +93,7 @@ public class PathPower extends JavaPlugin {
       path.startEnergy = energy;
       path.lastEnergy = energy;
       path.startTime = time;
+      path.updateLocation(player);
       paths.put(playerName, path);
       player.sendMessage("Path started!");
       break;
@@ -102,16 +105,18 @@ public class PathPower extends JavaPlugin {
     case "pathend":
       path = paths.get(playerName);
       if (path == null) return false;
+      path.updateLocation(player);
       paths.remove(playerName);
       long timeUsed = time - path.startTime;
       String humanTime = String.format("%.1f", timeUsed / 1000f);
       String humanEnergy = String.format("%.1f", path.startEnergy - energy);
       String humanDate = String.format("%tF %<tT", new Date());
+      String humanDistance = String.format("%.1f", path.distance);
       
       if (writer != null) {
-        writer.println(humanDate+","+playerName+","+path.name+","+humanEnergy+","+humanTime);
+        writer.println(humanDate+","+playerName+","+path.name+","+humanDistance+","+humanEnergy+","+humanTime);
       }
-      player.sendMessage("Path "+path.name+" complete in "+humanTime+"s!");
+      player.sendMessage("Path "+path.name+" ("+humanDistance+"m) complete in "+humanTime+"s!");
       player.sendMessage("Energy used: "+humanEnergy);    
       break;
     }
@@ -132,5 +137,17 @@ public class PathPower extends JavaPlugin {
     public float startEnergy;
     public float lastEnergy;
     public long startTime;
+    public Location lastLocation;
+    public float distance;
+    
+    public void updateLocation(Player player) {
+      Location location = player.getLocation();
+      if (lastLocation == null) {
+        distance = 0f;
+      } else {
+        distance += location.distance(lastLocation);
+      }
+      lastLocation = location;
+    }
   }
 }
