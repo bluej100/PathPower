@@ -11,10 +11,15 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.bukkit.Bukkit;
+import org.bukkit.DyeColor;
 import org.bukkit.Location;
+import org.bukkit.Material;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.material.Wool;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitScheduler;
 
@@ -94,9 +99,29 @@ public class PathPower extends JavaPlugin {
               PrintWriter writer = getTickWriter();
               writer.println(humanDate+","+playerName+","+path.name+","+humanPosition+","+humanPower);
               writer.close();
+              
+              createSpeedBlock(l, power);
             }
         }
     }, 0L, 20L);
+  }
+  
+  public void createSpeedBlock(Location l, float power) {
+      Block floor = l.add(0D,-1D,0D).getBlock();
+      if (!floor.isEmpty()) {
+        floor.setType(Material.WOOL);
+        BlockState bs = floor.getState();
+        Wool wool = (Wool) bs.getData();
+        DyeColor color = DyeColor.LIME;
+        if (power > 0.2) {
+          color = DyeColor.YELLOW;
+        }
+        if (power > 0.4) {
+          color = DyeColor.RED;
+        }
+        wool.setColor(color);
+        bs.update();
+      }
   }
   
   @Override

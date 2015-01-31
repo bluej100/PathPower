@@ -1,7 +1,7 @@
 PathPower
 =========
 
-A [Bukkit](http://bukkit.org/) plugin for measuring time and energy used by players travelling a path. The XP bar will display the player's current energy usage.
+A [Bukkit](http://bukkit.org/) plugin for measuring time and energy used by players travelling a path. The XP bar will display the player's current energy usage. The blocks walked on by players will also turn to colored wool to record energy.
 
 Installation
 -----
