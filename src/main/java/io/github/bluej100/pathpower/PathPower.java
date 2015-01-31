@@ -1,5 +1,6 @@
 package io.github.bluej100.pathpower;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -18,48 +19,81 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitScheduler;
 
 public class PathPower extends JavaPlugin {
-  public HashMap<String, Path> paths = new HashMap<String, Path>();
-  public PrintWriter writer;
+  public Map<String, Path> paths = new HashMap<String, Path>();
+  public static final String TOTAL_FILE = "totals.csv";
+  public static final String TICK_FILE = "ticks.csv";
   
   @Override
   public void onEnable() {
-    openWriter();
-    scheduleXP();
+    writeHeaders();
+    scheduleMonitor();
   }
   
-  @Override
-  public void onDisable() {
-    if (writer != null) writer.close();
+  public PrintWriter getTotalWriter() {
+    return getPathWriter(TOTAL_FILE);
   }
   
-  public void openWriter() {
+  public PrintWriter getTickWriter() {
+    return getPathWriter(TICK_FILE);
+  }
+  
+  public PrintWriter getPathWriter(String name) {
+    File logFile = new File(this.getDataFolder(), name);
+    PrintWriter writer = null;
+    try {
+      writer = new PrintWriter(new BufferedWriter(new FileWriter(logFile, true)));
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
+    return writer;
+  }
+  
+  public void writeHeaders() {
     try {
       File dataFolder = this.getDataFolder();
       dataFolder.mkdir();
-      File logFile = new File(dataFolder, "log.csv");
-      boolean isNew = logFile.createNewFile();
-      writer = new PrintWriter(new FileWriter(logFile, true));
-      if (isNew) {
+      File totalFile = new File(dataFolder, TOTAL_FILE);
+      if (totalFile.createNewFile()) {
+        PrintWriter writer = getTotalWriter();
         writer.println("Date,Player,Path,Distance,Energy,Time");
+        writer.close();
+      }
+      File tickFile = new File(dataFolder, TICK_FILE);
+      if (tickFile.createNewFile()) {
+        PrintWriter writer = getTickWriter();
+        writer.println("Date,Player,Path,X,Y,Z,Power");
+        writer.close();
       }
     } catch (IOException e) {
       getLogger().warning("Could not open log file");
     }
   }
   
-  public void scheduleXP() {
+  public void scheduleMonitor() {
     BukkitScheduler scheduler = Bukkit.getServer().getScheduler();
     scheduler.scheduleSyncRepeatingTask(this, new Runnable() {
         @Override
         public void run() {
             for (Map.Entry<String, Path> entry: paths.entrySet()) {
-              Player player = getPlayer(entry.getKey());
-              if (player == null) return;              
-              float energy = getEnergy(player);
+              String playerName = entry.getKey();
               Path path = entry.getValue();
-              player.setExp(Math.min(path.lastEnergy - energy, 1.0f));
+              Player player = getPlayer(playerName);
+              if (player == null) return;
+              
+              float energy = getEnergy(player);
+              float power = path.lastEnergy - energy;
+              player.setExp(Math.min(power, 1.0f));
               path.lastEnergy = energy;
               path.updateLocation(player);
+              
+              Location l = player.getLocation();
+              String humanDate = String.format("%tF %<tT", new Date());
+              String humanPosition = String.format("%.1f,%.1f,%.1f", l.getX(), l.getY(), l.getZ());
+              String humanPower = String.format("%.2f", power);
+              
+              PrintWriter writer = getTickWriter();
+              writer.println(humanDate+","+playerName+","+path.name+","+humanPosition+","+humanPower);
+              writer.close();
             }
         }
     }, 0L, 20L);
@@ -108,14 +142,15 @@ public class PathPower extends JavaPlugin {
       path.updateLocation(player);
       paths.remove(playerName);
       long timeUsed = time - path.startTime;
-      String humanTime = String.format("%.1f", timeUsed / 1000f);
-      String humanEnergy = String.format("%.1f", path.startEnergy - energy);
+      
       String humanDate = String.format("%tF %<tT", new Date());
       String humanDistance = String.format("%.1f", path.distance);
+      String humanEnergy = String.format("%.1f", path.startEnergy - energy);
+      String humanTime = String.format("%.1f", timeUsed / 1000f);
       
-      if (writer != null) {
-        writer.println(humanDate+","+playerName+","+path.name+","+humanDistance+","+humanEnergy+","+humanTime);
-      }
+      PrintWriter writer = getTotalWriter();
+      writer.println(humanDate+","+playerName+","+path.name+","+humanDistance+","+humanEnergy+","+humanTime);
+      writer.close();
       player.sendMessage("Path "+path.name+" ("+humanDistance+"m) complete in "+humanTime+"s!");
       player.sendMessage("Energy used: "+humanEnergy+" calories");
       break;
